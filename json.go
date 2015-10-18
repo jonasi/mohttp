@@ -7,9 +7,7 @@ import (
 
 const jsonKey = contextKey("github.com/jonasi/http.JSON")
 
-var DefaultJSON = &JSON{
-	TransformFunc: DefaultJSONTransform,
-}
+var DefaultJSON = JSON(DefaultJSONTransform)
 
 func DefaultJSONTransform(data interface{}) interface{} {
 	if err, ok := data.(error); ok {
@@ -21,11 +19,15 @@ func DefaultJSONTransform(data interface{}) interface{} {
 	return data
 }
 
-type JSON struct {
+func JSON(fn func(interface{}) interface{}) Handler {
+	return &jsonHandler{fn}
+}
+
+type jsonHandler struct {
 	TransformFunc func(interface{}) interface{}
 }
 
-func (j *JSON) Handle(c *Context) {
+func (j *jsonHandler) Handle(c *Context) {
 	c.Context = context.WithValue(c.Context, jsonKey, j)
 	c.Writer.Header().Add("Content-Type", "application/json")
 
@@ -38,8 +40,16 @@ func (j *JSON) Handle(c *Context) {
 	c.Next.Handle(c)
 }
 
+func (j *jsonHandler) handleErr(c *Context, err error) {
+	b, _ := json.Marshal(map[string]string{
+		"error": err.Error(),
+	})
+
+	c.Writer.Write(b)
+}
+
 func JSONResponse(c *Context, data interface{}) {
-	j := c.Context.Value(jsonKey).(*JSON)
+	j := c.Context.Value(jsonKey).(*jsonHandler)
 
 	if j.TransformFunc != nil {
 		data = j.TransformFunc(data)
@@ -51,14 +61,6 @@ func JSONResponse(c *Context, data interface{}) {
 		j.handleErr(c, err)
 		return
 	}
-
-	c.Writer.Write(b)
-}
-
-func (j *JSON) handleErr(c *Context, err error) {
-	b, _ := json.Marshal(map[string]string{
-		"error": err.Error(),
-	})
 
 	c.Writer.Write(b)
 }

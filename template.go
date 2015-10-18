@@ -5,18 +5,22 @@ import (
 	"html/template"
 )
 
-const templateKey = contextKey("github.com/jonasi/http.Template")
+const templateKey = contextKey("github.com/jonasi/http.templateHandler")
 
-type Template struct {
-	Template *template.Template
+func Template(t *template.Template) Handler {
+	return &templateHandler{t}
 }
 
-func (t *Template) Handle(c *Context) {
+type templateHandler struct {
+	template *template.Template
+}
+
+func (t *templateHandler) Handle(c *Context) {
 	c.Context = context.WithValue(c.Context, templateKey, t)
 	c.Next.Handle(c)
 }
 
 func TemplateResponse(c *Context, name string, data interface{}) {
-	t := c.Context.Value(templateKey).(*Template)
-	t.Template.ExecuteTemplate(c.Writer, name, data)
+	t := c.Context.Value(templateKey).(*templateHandler)
+	t.template.ExecuteTemplate(c.Writer, name, data)
 }

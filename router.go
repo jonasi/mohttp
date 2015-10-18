@@ -6,11 +6,24 @@ import (
 	"net/http"
 )
 
+var notFoundHandler = HandlerFunc(func(c *Context) {
+	c.Writer.WriteHeader(http.StatusNotFound)
+})
+
+var methodNotAllowedHandler = HandlerFunc(func(c *Context) {
+	c.Writer.WriteHeader(http.StatusMethodNotAllowed)
+})
+
 func NewRouter() *Router {
-	return &Router{
+	r := &Router{
 		router:   httprouter.New(),
 		handlers: []Handler{},
 	}
+
+	r.HandleNotFound(notFoundHandler)
+	r.HandleMethodNotAllowed(methodNotAllowedHandler)
+
+	return r
 }
 
 type Router struct {
@@ -27,8 +40,13 @@ func (r *Router) AddGlobalHandler(h ...Handler) {
 }
 
 func (r *Router) Register(endpoints ...*Endpoint) {
-	for _, ep := range endpoints {
-		r.router.Handle(ep.Method, ep.Path, r.mkHandle(ep.Handlers...))
+	for i := range endpoints {
+		ep := endpoints[i]
+
+		r.router.Handle(ep.Method, ep.Path, func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+			h := append(append([]Handler{}, r.handlers...), ep.Handlers...)
+			handle(w, req, p, h...)
+		})
 	}
 }
 
@@ -38,29 +56,21 @@ func (r *Router) RegisterHTTPHandler(method, path string, h http.Handler) {
 	})
 }
 
-func (r *Router) HandleNotFound(h Handler) {
-	r.router.NotFound = r.mkHandler(h)
-}
-
-func (r *Router) HandleMethodNotAllowed(h Handler) {
-	r.router.MethodNotAllowed = r.mkHandler(h)
-}
-
-func (r *Router) mkHandle(h ...Handler) httprouter.Handle {
-	return func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-		r.handle(w, req, p, h...)
-	}
-}
-
-func (r *Router) mkHandler(h ...Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		r.handle(w, req, nil, h...)
+func (r *Router) HandleNotFound(h ...Handler) {
+	r.router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		handlers := append(append([]Handler{}, r.handlers...), h...)
+		handle(w, req, nil, handlers...)
 	})
 }
 
-func (r *Router) handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handlers ...Handler) {
-	handlers = append(r.handlers, handlers...)
+func (r *Router) HandleMethodNotAllowed(h ...Handler) {
+	r.router.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		handlers := append(append([]Handler{}, r.handlers...), h...)
+		handle(w, req, nil, handlers...)
+	})
+}
 
+func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handlers ...Handler) {
 	next := HandlerFunc(func(c *Context) {
 		if len(handlers) == 0 {
 			return
