@@ -1,19 +1,5 @@
 package http
 
-import (
-	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/context"
-	"net/http"
-)
-
-type Context struct {
-	Writer  http.ResponseWriter
-	Request *http.Request
-	Params  httprouter.Params
-	Context context.Context
-	Next    Handler
-}
-
 type Handler interface {
 	Handle(*Context)
 }
