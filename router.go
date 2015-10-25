@@ -35,18 +35,26 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.router.ServeHTTP(w, req)
 }
 
+func (r *Router) Handle(method, path string, handlers ...Handler) {
+	r.router.Handle(method, path, func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+		h := append(append([]Handler{}, r.handlers...), handlers...)
+		handle(w, req, p, h...)
+	})
+}
+
 func (r *Router) AddGlobalHandler(h ...Handler) {
 	r.handlers = append(r.handlers, h...)
 }
 
-func (r *Router) Register(endpoints ...*Endpoint) {
+func (r *Router) Register(endpoints ...Endpoint) {
 	for i := range endpoints {
 		ep := endpoints[i]
 
-		r.router.Handle(ep.Method, ep.Path, func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-			h := append(append([]Handler{}, r.handlers...), ep.Handlers...)
-			handle(w, req, p, h...)
-		})
+		for _, method := range ep.Methods() {
+			for _, path := range ep.Paths() {
+				r.Handle(method, path, ep.Handlers()...)
+			}
+		}
 	}
 }
 
