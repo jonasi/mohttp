@@ -16,3 +16,10 @@ func FromStdLib(fn StdlibMiddleware) Handler {
 		})).ServeHTTP(c.Writer, c.Request)
 	})
 }
+
+func FromHTTPHandler(handler http.Handler) Handler {
+	return HandlerFunc(func(c *Context) {
+		handler.ServeHTTP(c.Writer, c.Request)
+		c.Next.Handle(c)
+	})
+}
