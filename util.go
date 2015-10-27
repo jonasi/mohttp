@@ -1,11 +1,9 @@
-package http
+package mohttp
 
 import (
 	"fmt"
 	"net/http"
 )
-
-type contextKey string
 
 func recoverErr() error {
 	r := recover()

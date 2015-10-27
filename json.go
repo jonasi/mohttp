@@ -1,11 +1,10 @@
-package http
+package mohttp
 
 import (
 	"encoding/json"
-	"golang.org/x/net/context"
 )
 
-const jsonKey = contextKey("github.com/jonasi/http.JSON")
+var jsonContextValue = NewContextValueStore("github.com/jonasi/http.JSON")
 
 var DefaultJSON = JSON(DefaultJSONTransform)
 
@@ -28,7 +27,7 @@ type jsonHandler struct {
 }
 
 func (j *jsonHandler) Handle(c *Context) {
-	c.Context = context.WithValue(c.Context, jsonKey, j)
+	c = jsonContextValue.Set(c, j)
 	c.Writer.Header().Add("Content-Type", "application/json")
 
 	defer func() {
@@ -49,7 +48,7 @@ func (j *jsonHandler) handleErr(c *Context, err error) {
 }
 
 func JSONResponse(c *Context, data interface{}) {
-	j := c.Context.Value(jsonKey).(*jsonHandler)
+	j := jsonContextValue.Get(c).(*jsonHandler)
 
 	if j.TransformFunc != nil {
 		data = j.TransformFunc(data)

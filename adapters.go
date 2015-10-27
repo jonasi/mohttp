@@ -1,4 +1,4 @@
-package http
+package mohttp
 
 import (
 	"net/http"

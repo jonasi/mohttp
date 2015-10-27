@@ -1,4 +1,4 @@
-package http
+package mohttp
 
 type Handler interface {
 	Handle(*Context)

@@ -1,4 +1,4 @@
-package http
+package mohttp
 
 import (
 	"net/http"
@@ -18,8 +18,6 @@ type RequestStats struct {
 	StatusCode    int
 	ContentLength int
 }
-
-var logKey = contextKey("github.com/jonasi/http.Logger")
 
 func Logger(fn func(*RequestStats)) Handler {
 	return HandlerFunc(func(c *Context) {
