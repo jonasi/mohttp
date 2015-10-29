@@ -10,19 +10,19 @@ func StripPrefix(prefix string) Handler {
 	})
 }
 
-func Prefix(prefix string, endpoints ...Endpoint) []Endpoint {
-	eps := make([]Endpoint, len(endpoints))
+func Prefix(prefix string, routes ...Route) []Route {
+	rts := make([]Route, len(routes))
 
-	for i, ep := range endpoints {
-		p := ep.Paths()
+	for i, rt := range routes {
+		p := rt.Paths()
 		p2 := make([]string, len(p))
 
 		for i := range p {
 			p2[i] = prefix + p[i]
 		}
 
-		eps[i] = NewComplexEndpoint(ep.Methods(), p2, ep.Handlers()...)
+		rts[i] = NewComplexRoute(rt.Methods(), p2, rt.Handlers()...)
 	}
 
-	return eps
+	return rts
 }

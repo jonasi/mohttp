@@ -42,17 +42,17 @@ func (r *Router) Handle(method, path string, handlers ...Handler) {
 	})
 }
 
-func (r *Router) AddGlobalHandler(h ...Handler) {
+func (r *Router) Use(h ...Handler) {
 	r.handlers = append(r.handlers, h...)
 }
 
-func (r *Router) Register(endpoints ...Endpoint) {
-	for i := range endpoints {
-		ep := endpoints[i]
+func (r *Router) Register(routes ...Route) {
+	for i := range routes {
+		rt := routes[i]
 
-		for _, method := range ep.Methods() {
-			for _, path := range ep.Paths() {
-				r.Handle(method, path, ep.Handlers()...)
+		for _, method := range rt.Methods() {
+			for _, path := range rt.Paths() {
+				r.Handle(method, path, rt.Handlers()...)
 			}
 		}
 	}

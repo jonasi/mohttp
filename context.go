@@ -15,6 +15,17 @@ type Context struct {
 	Next    Handler
 }
 
+func (c *Context) ParamString(k string) string {
+	return c.Params.ByName(k)
+}
+
+func (c *Context) ParamInt(k string) int {
+	v := c.ParamString(k)
+	iv, _ := strconv.Atoi(v)
+
+	return iv
+}
+
 func (c *Context) QueryString(k string) string {
 	return c.Request.URL.Query().Get(k)
 }
