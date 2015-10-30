@@ -95,8 +95,8 @@ func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handl
 		WithNext(next).
 		WithPathValues(
 		&PathValues{
-			Params: &paramsStore{p},
-			Query:  &queryStore{req.URL.Query()},
+			Params: &params{p},
+			Query:  &query{req.URL.Query()},
 		})
 
 	next.Handle(c)
