@@ -8,63 +8,73 @@ import (
 )
 
 type PathValues struct {
-	Params StringSources
-	Query  StringSources
+	Params StringValues
+	Query  StringValues
 }
 
-type StringSources interface {
-	Get(string) StringSource
+type StringValues interface {
+	String(string) string
+	Bool(string) bool
+	Int(string) int
+	Int8(string) int8
+	Int16(string) int16
+	Int32(string) int32
+	Int64(string) int64
+	Uint(string) uint
+	Uint8(string) uint8
+	Uint16(string) uint16
+	Uint32(string) uint32
+	Uint64(string) uint64
+	Float32(string) float32
+	Float64(string) float64
+	SliceInt(string, string) []int
+	SliceInt8(string, string) []int8
+	SliceInt16(string, string) []int16
+	SliceInt32(string, string) []int32
+	SliceInt64(string, string) []int64
+	SliceUint(string, string) []uint
+	SliceUint8(string, string) []uint8
+	SliceUint16(string, string) []uint16
+	SliceUint32(string, string) []uint32
+	SliceUint64(string, string) []uint64
+	SliceFloat32(string, string) []float32
+	SliceFloat64(string, string) []float64
 	Has(string) bool
 }
 
-type query struct {
-	url.Values
+func query(v url.Values) StringValues {
+	return stringValues(func(k string) string { return v.Get(k) })
 }
 
-func (q *query) Get(s string) StringSource {
-	return StringSource(q.Values.Get(s))
+func params(p httprouter.Params) StringValues {
+	return stringValues(func(k string) string { return p.ByName(k) })
 }
 
-func (q *query) Has(s string) bool {
-	return q.Values.Get(s) != ""
+type stringValues func(string) string
+
+func (v stringValues) Has(k string) bool        { return v(k) != "" }
+func (v stringValues) String(k string) string   { return v(k) }
+func (v stringValues) Bool(k string) bool       { return parseBool(v(k)) }
+func (v stringValues) Int(k string) int         { return int(parseInt(v(k), 0)) }
+func (v stringValues) Int8(k string) int8       { return int8(parseInt(v(k), 8)) }
+func (v stringValues) Int16(k string) int16     { return int16(parseInt(v(k), 16)) }
+func (v stringValues) Int32(k string) int32     { return int32(parseInt(v(k), 32)) }
+func (v stringValues) Int64(k string) int64     { return int64(parseInt(v(k), 64)) }
+func (v stringValues) Uint(k string) uint       { return uint(parseUint(v(k), 0)) }
+func (v stringValues) Uint8(k string) uint8     { return uint8(parseUint(v(k), 8)) }
+func (v stringValues) Uint16(k string) uint16   { return uint16(parseUint(v(k), 16)) }
+func (v stringValues) Uint32(k string) uint32   { return uint32(parseUint(v(k), 32)) }
+func (v stringValues) Uint64(k string) uint64   { return uint64(parseUint(v(k), 64)) }
+func (v stringValues) Float32(k string) float32 { return float32(parseFloat(v(k), 32)) }
+func (v stringValues) Float64(k string) float64 { return float64(parseFloat(v(k), 64)) }
+
+func (v stringValues) SliceString(k, sep string) []string {
+	return strings.Split(v(k), sep)
 }
 
-type params struct {
-	httprouter.Params
-}
-
-func (p *params) Get(s string) StringSource {
-	return StringSource(p.ByName(s))
-}
-
-func (p *params) Has(s string) bool {
-	return p.ByName(s) != ""
-}
-
-type StringSource string
-
-func (v StringSource) String() string   { return string(v) }
-func (v StringSource) Bool() bool       { return parseBool(string(v)) }
-func (v StringSource) Int() int         { return int(parseInt(string(v), 0)) }
-func (v StringSource) Int8() int8       { return int8(parseInt(string(v), 8)) }
-func (v StringSource) Int16() int16     { return int16(parseInt(string(v), 16)) }
-func (v StringSource) Int32() int32     { return int32(parseInt(string(v), 32)) }
-func (v StringSource) Int64() int64     { return int64(parseInt(string(v), 64)) }
-func (v StringSource) Uint() uint       { return uint(parseUint(string(v), 0)) }
-func (v StringSource) Uint8() uint8     { return uint8(parseUint(string(v), 8)) }
-func (v StringSource) Uint16() uint16   { return uint16(parseUint(string(v), 16)) }
-func (v StringSource) Uint32() uint32   { return uint32(parseUint(string(v), 32)) }
-func (v StringSource) Uint64() uint64   { return uint64(parseUint(string(v), 64)) }
-func (v StringSource) Float32() float32 { return float32(parseFloat(string(v), 32)) }
-func (v StringSource) Float64() float64 { return float64(parseFloat(string(v), 64)) }
-
-func (v StringSource) SliceString(sep string) []string {
-	return strings.Split(string(v), sep)
-}
-
-func (v StringSource) SliceBool(sep string) []bool {
+func (v stringValues) SliceBool(k, sep string) []bool {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]bool, len(strs))
 	)
 
@@ -75,9 +85,9 @@ func (v StringSource) SliceBool(sep string) []bool {
 	return vals
 }
 
-func (v StringSource) SliceInt(sep string) []int {
+func (v stringValues) SliceInt(k, sep string) []int {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]int, len(strs))
 	)
 
@@ -88,9 +98,9 @@ func (v StringSource) SliceInt(sep string) []int {
 	return vals
 }
 
-func (v StringSource) SliceInt8(sep string) []int8 {
+func (v stringValues) SliceInt8(k, sep string) []int8 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]int8, len(strs))
 	)
 
@@ -101,9 +111,9 @@ func (v StringSource) SliceInt8(sep string) []int8 {
 	return vals
 }
 
-func (v StringSource) SliceInt16(sep string) []int16 {
+func (v stringValues) SliceInt16(k, sep string) []int16 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]int16, len(strs))
 	)
 
@@ -114,9 +124,9 @@ func (v StringSource) SliceInt16(sep string) []int16 {
 	return vals
 }
 
-func (v StringSource) SliceInt32(sep string) []int32 {
+func (v stringValues) SliceInt32(k, sep string) []int32 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]int32, len(strs))
 	)
 
@@ -127,9 +137,9 @@ func (v StringSource) SliceInt32(sep string) []int32 {
 	return vals
 }
 
-func (v StringSource) SliceInt64(sep string) []int64 {
+func (v stringValues) SliceInt64(k, sep string) []int64 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]int64, len(strs))
 	)
 
@@ -140,9 +150,9 @@ func (v StringSource) SliceInt64(sep string) []int64 {
 	return vals
 }
 
-func (v StringSource) SliceUint(sep string) []uint {
+func (v stringValues) SliceUint(k, sep string) []uint {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]uint, len(strs))
 	)
 
@@ -153,9 +163,9 @@ func (v StringSource) SliceUint(sep string) []uint {
 	return vals
 }
 
-func (v StringSource) SliceUint8(sep string) []uint8 {
+func (v stringValues) SliceUint8(k, sep string) []uint8 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]uint8, len(strs))
 	)
 
@@ -166,9 +176,9 @@ func (v StringSource) SliceUint8(sep string) []uint8 {
 	return vals
 }
 
-func (v StringSource) SliceUint16(sep string) []uint16 {
+func (v stringValues) SliceUint16(k, sep string) []uint16 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]uint16, len(strs))
 	)
 
@@ -179,9 +189,9 @@ func (v StringSource) SliceUint16(sep string) []uint16 {
 	return vals
 }
 
-func (v StringSource) SliceUint32(sep string) []uint32 {
+func (v stringValues) SliceUint32(k, sep string) []uint32 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]uint32, len(strs))
 	)
 
@@ -192,9 +202,9 @@ func (v StringSource) SliceUint32(sep string) []uint32 {
 	return vals
 }
 
-func (v StringSource) SliceUint64(sep string) []uint64 {
+func (v stringValues) SliceUint64(k, sep string) []uint64 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]uint64, len(strs))
 	)
 
@@ -205,9 +215,9 @@ func (v StringSource) SliceUint64(sep string) []uint64 {
 	return vals
 }
 
-func (v StringSource) SliceFloat32(sep string) []float32 {
+func (v stringValues) SliceFloat32(k, sep string) []float32 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]float32, len(strs))
 	)
 
@@ -218,9 +228,9 @@ func (v StringSource) SliceFloat32(sep string) []float32 {
 	return vals
 }
 
-func (v StringSource) SliceFloat64(sep string) []float64 {
+func (v stringValues) SliceFloat64(k, sep string) []float64 {
 	var (
-		strs = strings.Split(string(v), sep)
+		strs = strings.Split(v(k), sep)
 		vals = make([]float64, len(strs))
 	)
 
