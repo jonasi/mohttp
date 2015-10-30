@@ -21,20 +21,22 @@ type RequestStats struct {
 
 func Logger(fn func(*RequestStats)) Handler {
 	return HandlerFunc(func(c *Context) {
+		req := c.Request()
+
 		st := &RequestStats{
 			StartTime: time.Now(),
-			Protocol:  c.Request.Proto,
-			Method:    c.Request.Method,
-			URL:       c.Request.URL,
-			UserAgent: c.Request.UserAgent(),
-			ClientIP:  c.Request.RemoteAddr,
-			Referer:   c.Request.Referer(),
+			Protocol:  req.Proto,
+			Method:    req.Method,
+			URL:       req.URL,
+			UserAgent: req.UserAgent(),
+			ClientIP:  req.RemoteAddr,
+			Referer:   req.Referer(),
 		}
 
-		rw := NewResponseWriter(c.Writer)
-		c.Writer = rw
+		rw := NewResponseWriter(c.ResponseWriter())
+		c = c.WithResponseWriter(rw)
 
-		c.Next.Handle(c)
+		c.Next().Handle(c)
 
 		st.Duration = time.Since(st.StartTime)
 		st.StatusCode = rw.Status()

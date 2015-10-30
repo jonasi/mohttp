@@ -2,16 +2,15 @@ package mohttp
 
 import (
 	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/context"
 	"net/http"
 )
 
 var notFoundHandler = HandlerFunc(func(c *Context) {
-	c.Writer.WriteHeader(http.StatusNotFound)
+	c.ResponseWriter().WriteHeader(http.StatusNotFound)
 })
 
 var methodNotAllowedHandler = HandlerFunc(func(c *Context) {
-	c.Writer.WriteHeader(http.StatusMethodNotAllowed)
+	c.ResponseWriter().WriteHeader(http.StatusMethodNotAllowed)
 })
 
 func NewRouter() *Router {
@@ -90,13 +89,15 @@ func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handl
 		cur.Handle(c)
 	})
 
-	c := &Context{
-		Writer:  w,
-		Request: req,
-		Params:  p,
-		Context: context.Background(),
-		Next:    next,
-	}
+	c := (&Context{nil}).
+		WithRequest(req).
+		WithResponseWriter(w).
+		WithNext(next).
+		WithPathValues(
+		&PathValues{
+			Params: &paramsStore{p},
+			Query:  &queryStore{req.URL.Query()},
+		})
 
 	next.Handle(c)
 }

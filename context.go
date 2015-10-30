@@ -1,40 +1,51 @@
 package mohttp
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 	"net/http"
-	"strconv"
+)
+
+var (
+	reqKey  = NewContextKey("github.com/jonasi/mohttp.Request")
+	respKey = NewContextKey("github.com/jonasi/mohttp.ResponseWriter")
+	pathKey = NewContextKey("github.com/jonasi/mohttp.PathValues")
+	nextKey = NewContextKey("github.com/jonasi/mohttp.Next")
 )
 
 type Context struct {
-	Writer  http.ResponseWriter
-	Request *http.Request
-	Params  httprouter.Params
-	Context context.Context
-	Next    Handler
+	context.Context
 }
 
-func (c *Context) ParamString(k string) string {
-	return c.Params.ByName(k)
+func (c *Context) WithRequest(r *http.Request) *Context {
+	return &Context{context.WithValue(c, reqKey, r)}
 }
 
-func (c *Context) ParamInt(k string) int {
-	v := c.ParamString(k)
-	iv, _ := strconv.Atoi(v)
-
-	return iv
+func (c *Context) Request() *http.Request {
+	return c.Value(reqKey).(*http.Request)
 }
 
-func (c *Context) QueryString(k string) string {
-	return c.Request.URL.Query().Get(k)
+func (c *Context) WithResponseWriter(w http.ResponseWriter) *Context {
+	return &Context{context.WithValue(c, respKey, w)}
 }
 
-func (c *Context) QueryInt(k string) int {
-	v := c.QueryString(k)
-	iv, _ := strconv.Atoi(v)
+func (c *Context) ResponseWriter() http.ResponseWriter {
+	return c.Value(respKey).(http.ResponseWriter)
+}
 
-	return iv
+func (c *Context) WithPathValues(p *PathValues) *Context {
+	return &Context{context.WithValue(c, pathKey, p)}
+}
+
+func (c *Context) PathValues() *PathValues {
+	return c.Value(pathKey).(*PathValues)
+}
+
+func (c *Context) WithNext(h Handler) *Context {
+	return &Context{context.WithValue(c, nextKey, h)}
+}
+
+func (c *Context) Next() Handler {
+	return c.Value(nextKey).(Handler)
 }
 
 type contextKey string
@@ -67,7 +78,7 @@ func NewContextValueMiddleware(str string) (func(interface{}) Handler, ContextVa
 	return func(val interface{}) Handler {
 		return HandlerFunc(func(c *Context) {
 			c = st.Set(c, val)
-			c.Next.Handle(c)
+			c.Next().Handle(c)
 		})
 	}, st
 }

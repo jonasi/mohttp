@@ -16,10 +16,10 @@ type templateHandler struct {
 
 func (t *templateHandler) Handle(c *Context) {
 	c = templateContextValue.Set(c, t)
-	c.Next.Handle(c)
+	c.Next().Handle(c)
 }
 
 func TemplateResponse(c *Context, name string, data interface{}) {
 	t := templateContextValue.Get(c).(*templateHandler)
-	t.template.ExecuteTemplate(c.Writer, name, data)
+	t.template.ExecuteTemplate(c.ResponseWriter(), name, data)
 }

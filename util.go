@@ -21,7 +21,7 @@ func recoverErr() error {
 
 func Redirect(path string) Handler {
 	return HandlerFunc(func(c *Context) {
-		http.Redirect(c.Writer, c.Request, path, http.StatusTemporaryRedirect)
-		c.Next.Handle(c)
+		http.Redirect(c.ResponseWriter(), c.Request(), path, http.StatusTemporaryRedirect)
+		c.Next().Handle(c)
 	})
 }

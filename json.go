@@ -28,7 +28,7 @@ type jsonHandler struct {
 
 func (j *jsonHandler) Handle(c *Context) {
 	c = jsonContextValue.Set(c, j)
-	c.Writer.Header().Add("Content-Type", "application/json")
+	c.ResponseWriter().Header().Add("Content-Type", "application/json")
 
 	defer func() {
 		if err := recoverErr(); err != nil {
@@ -36,7 +36,7 @@ func (j *jsonHandler) Handle(c *Context) {
 		}
 	}()
 
-	c.Next.Handle(c)
+	c.Next().Handle(c)
 }
 
 func (j *jsonHandler) handleErr(c *Context, err error) {
@@ -44,7 +44,7 @@ func (j *jsonHandler) handleErr(c *Context, err error) {
 		"error": err.Error(),
 	})
 
-	c.Writer.Write(b)
+	c.ResponseWriter().Write(b)
 }
 
 func JSONResponse(c *Context, data interface{}) {
@@ -61,5 +61,5 @@ func JSONResponse(c *Context, data interface{}) {
 		return
 	}
 
-	c.Writer.Write(b)
+	c.ResponseWriter().Write(b)
 }
