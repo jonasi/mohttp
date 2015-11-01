@@ -2,64 +2,57 @@ package mohttp
 
 import (
 	"encoding/json"
+	"golang.org/x/net/context"
 )
 
 var jsonContextValue = NewContextValueStore("github.com/jonasi/http.JSON")
 
-var DefaultJSON = JSON(DefaultJSONTransform)
-
-func DefaultJSONTransform(data interface{}) interface{} {
-	if err, ok := data.(error); ok {
-		return map[string]interface{}{
-			"error": err,
-		}
-	}
-
-	return data
+type JSONOptions struct {
+	HandleErr func(context.Context, error) interface{}
+	Transform func(interface{}) interface{}
 }
 
-func JSON(fn func(interface{}) interface{}) Handler {
-	return &jsonHandler{fn}
-}
-
-type jsonHandler struct {
-	TransformFunc func(interface{}) interface{}
-}
-
-func (j *jsonHandler) Handle(c *Context) {
+func (j *JSONOptions) Handle(c context.Context) {
 	c = jsonContextValue.Set(c, j)
-	c.ResponseWriter().Header().Add("Content-Type", "application/json")
+	c = WithResponder(c, &jsonResponder{j})
 
-	defer func() {
-		if err := recoverErr(); err != nil {
-			j.handleErr(c, err)
-		}
-	}()
-
-	c.Next().Handle(c)
+	GetNext(c).Handle(c)
 }
 
-func (j *jsonHandler) handleErr(c *Context, err error) {
-	b, _ := json.Marshal(map[string]string{
-		"error": err.Error(),
-	})
-
-	c.ResponseWriter().Write(b)
+type jsonResponder struct {
+	opts *JSONOptions
 }
 
-func JSONResponse(c *Context, data interface{}) {
-	j := jsonContextValue.Get(c).(*jsonHandler)
-
-	if j.TransformFunc != nil {
-		data = j.TransformFunc(data)
+func (j *jsonResponder) HandleResult(c context.Context, data interface{}) error {
+	if j.opts != nil && j.opts.Transform != nil {
+		data = j.opts.Transform(data)
 	}
 
-	b, err := json.Marshal(data)
+	GetResponseWriter(c).Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(GetResponseWriter(c)).Encode(data)
+}
+
+func (j *jsonResponder) HandleErr(c context.Context, err error) {
+	if j.opts != nil && j.opts.HandleErr != nil {
+		data := j.opts.HandleErr(c, err)
+		err = j.HandleResult(c, data)
+	}
 
 	if err != nil {
-		j.handleErr(c, err)
-		return
+		panic("No error json handler specified")
 	}
+}
 
-	c.ResponseWriter().Write(b)
+func JSONHandler(fn DataHandlerFunc) Handler {
+	h := DataHandler(fn)
+
+	return HandlerFunc(func(c context.Context) {
+		_, ok := jsonContextValue.Get(c).(*JSONOptions)
+
+		if !ok {
+			c = WithResponder(c, &jsonResponder{})
+		}
+
+		h.Handle(c)
+	})
 }

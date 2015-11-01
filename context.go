@@ -1,91 +1,67 @@
 package mohttp
 
 import (
+	"github.com/jonasi/mohttp/contextutil"
 	"golang.org/x/net/context"
 	"net/http"
 )
 
 var (
-	reqKey  = NewContextKey("github.com/jonasi/mohttp.Request")
-	respKey = NewContextKey("github.com/jonasi/mohttp.ResponseWriter")
-	pathKey = NewContextKey("github.com/jonasi/mohttp.PathValues")
-	nextKey = NewContextKey("github.com/jonasi/mohttp.Next")
+	reqStore  = NewContextValueStore("github.com/jonasi/mohttp.Request")
+	respStore = NewContextValueStore("github.com/jonasi/mohttp.ResponseWriter")
+	pathStore = NewContextValueStore("github.com/jonasi/mohttp.PathValues")
+	nextStore = NewContextValueStore("github.com/jonasi/mohttp.Next")
 )
 
-type Context struct {
-	context.Context
+func WithRequest(c context.Context, r *http.Request) context.Context {
+	return reqStore.Set(c, r)
 }
 
-func (c *Context) WithRequest(r *http.Request) *Context {
-	return &Context{context.WithValue(c, reqKey, r)}
+func GetRequest(c context.Context) *http.Request {
+	return reqStore.Get(c).(*http.Request)
 }
 
-func (c *Context) Request() *http.Request {
-	return c.Value(reqKey).(*http.Request)
+func WithResponseWriter(c context.Context, w http.ResponseWriter) context.Context {
+	return respStore.Set(c, w)
 }
 
-func (c *Context) WithResponseWriter(w http.ResponseWriter) *Context {
-	return &Context{context.WithValue(c, respKey, w)}
+func GetResponseWriter(c context.Context) http.ResponseWriter {
+	return respStore.Get(c).(http.ResponseWriter)
 }
 
-func (c *Context) ResponseWriter() http.ResponseWriter {
-	return c.Value(respKey).(http.ResponseWriter)
+func WithPathValues(c context.Context, p *PathValues) context.Context {
+	return pathStore.Set(c, p)
 }
 
-func (c *Context) WithPathValues(p *PathValues) *Context {
-	return &Context{context.WithValue(c, pathKey, p)}
+func GetPathValues(c context.Context) *PathValues {
+	return pathStore.Get(c).(*PathValues)
 }
 
-func (c *Context) PathValues() *PathValues {
-	return c.Value(pathKey).(*PathValues)
+func WithNext(c context.Context, h Handler) context.Context {
+	return nextStore.Set(c, h)
 }
 
-func (c *Context) WithNext(h Handler) *Context {
-	return &Context{context.WithValue(c, nextKey, h)}
+func GetNext(c context.Context) Handler {
+	return nextStore.Get(c).(Handler)
 }
 
-func (c *Context) Next() Handler {
-	return c.Value(nextKey).(Handler)
-}
-
-type contextKey string
-
-type ContextValueStore interface {
-	Get(*Context) interface{}
-	Set(*Context, interface{}) *Context
-}
-
-func NewContextValueStore(str string) ContextValueStore {
-	return &contextValueStore{contextKey(str)}
-}
-
-type contextValueStore struct {
-	k contextKey
-}
-
-func (c *contextValueStore) Get(ctxt *Context) interface{} {
-	return ctxt.Context.Value(c.k)
-}
-
-func (c *contextValueStore) Set(ctxt *Context, val interface{}) *Context {
-	ctxt.Context = context.WithValue(ctxt.Context, c.k, val)
-	return ctxt
-}
-
-func NewContextValueMiddleware(str string) (func(interface{}) Handler, ContextValueStore) {
+func NewContextValuePair(str string) (func(interface{}) Handler, contextutil.ValueStore) {
 	st := NewContextValueStore(str)
 
 	return func(val interface{}) Handler {
-		return HandlerFunc(func(c *Context) {
+		return HandlerFunc(func(c context.Context) {
 			c = st.Set(c, val)
-			c.Next().Handle(c)
+			GetNext(c).Handle(c)
 		})
 	}, st
 }
 
-// implementation pulled from https://go-review.googlesource.com/#/c/10910/
-func NewContextKey(str string) interface{} {
-	return (*contextKey)(&str)
+func NewContextValueStore(key string) contextutil.ValueStore {
+	return &contextValueStore{
+		contextutil.NewValueStore(contextutil.NewKey(key)),
+	}
 }
 
-func (k *contextKey) String() string { return string(*k) }
+type contextValueStore struct {
+	contextutil.ValueStore
+}

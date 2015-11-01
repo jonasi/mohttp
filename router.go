@@ -2,15 +2,16 @@ package mohttp
 
 import (
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/net/context"
 	"net/http"
 )
 
-var notFoundHandler = HandlerFunc(func(c *Context) {
-	c.ResponseWriter().WriteHeader(http.StatusNotFound)
+var notFoundHandler = HandlerFunc(func(c context.Context) {
+	GetResponseWriter(c).WriteHeader(http.StatusNotFound)
 })
 
-var methodNotAllowedHandler = HandlerFunc(func(c *Context) {
-	c.ResponseWriter().WriteHeader(http.StatusMethodNotAllowed)
+var methodNotAllowedHandler = HandlerFunc(func(c context.Context) {
+	GetResponseWriter(c).WriteHeader(http.StatusMethodNotAllowed)
 })
 
 func NewRouter() *Router {
@@ -78,7 +79,7 @@ func (r *Router) HandleMethodNotAllowed(h ...Handler) {
 }
 
 func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handlers ...Handler) {
-	next := HandlerFunc(func(c *Context) {
+	next := HandlerFunc(func(c context.Context) {
 		if len(handlers) == 0 {
 			return
 		}
@@ -89,15 +90,14 @@ func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handl
 		cur.Handle(c)
 	})
 
-	c := (&Context{nil}).
-		WithRequest(req).
-		WithResponseWriter(w).
-		WithNext(next).
-		WithPathValues(
-		&PathValues{
-			Params: params(p),
-			Query:  query(req.URL.Query()),
-		})
+	c := context.Background()
+	c = WithRequest(c, req)
+	c = WithResponseWriter(c, w)
+	c = WithNext(c, next)
+	c = WithPathValues(c, &PathValues{
+		Params: params(p),
+		Query:  query(req.URL.Query()),
+	})
 
 	next.Handle(c)
 }

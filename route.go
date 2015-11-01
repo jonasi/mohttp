@@ -1,12 +1,16 @@
 package mohttp
 
+import (
+	"golang.org/x/net/context"
+)
+
 type Handler interface {
-	Handle(*Context)
+	Handle(context.Context)
 }
 
-type HandlerFunc func(*Context)
+type HandlerFunc func(context.Context)
 
-func (h HandlerFunc) Handle(c *Context) {
+func (h HandlerFunc) Handle(c context.Context) {
 	h(c)
 }
 

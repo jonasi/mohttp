@@ -1,6 +1,7 @@
 package mohttp
 
 import (
+	"golang.org/x/net/context"
 	"net/http"
 	"net/url"
 	"time"
@@ -20,8 +21,8 @@ type RequestStats struct {
 }
 
 func Logger(fn func(*RequestStats)) Handler {
-	return HandlerFunc(func(c *Context) {
-		req := c.Request()
+	return HandlerFunc(func(c context.Context) {
+		req := GetRequest(c)
 
 		st := &RequestStats{
 			StartTime: time.Now(),
@@ -33,10 +34,10 @@ func Logger(fn func(*RequestStats)) Handler {
 			Referer:   req.Referer(),
 		}
 
-		rw := NewResponseWriter(c.ResponseWriter())
-		c = c.WithResponseWriter(rw)
+		rw := NewResponseWriter(GetResponseWriter(c))
+		c = WithResponseWriter(c, rw)
 
-		c.Next().Handle(c)
+		GetNext(c).Handle(c)
 
 		st.Duration = time.Since(st.StartTime)
 		st.StatusCode = rw.Status()
@@ -46,35 +47,35 @@ func Logger(fn func(*RequestStats)) Handler {
 	})
 }
 
-func NewResponseWriter(rw http.ResponseWriter) *ResponseWriter {
-	return &ResponseWriter{
+func NewResponseWriter(rw http.ResponseWriter) *StatsResponseWriter {
+	return &StatsResponseWriter{
 		ResponseWriter: rw,
 		status:         200,
 	}
 }
 
-type ResponseWriter struct {
+type StatsResponseWriter struct {
 	http.ResponseWriter
 	status        int
 	contentLength int
 }
 
-func (rw *ResponseWriter) Write(b []byte) (int, error) {
+func (rw *StatsResponseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.contentLength += n
 
 	return n, err
 }
 
-func (rw *ResponseWriter) WriteHeader(status int) {
+func (rw *StatsResponseWriter) WriteHeader(status int) {
 	rw.status = status
 	rw.ResponseWriter.WriteHeader(status)
 }
 
-func (rw *ResponseWriter) Status() int {
+func (rw *StatsResponseWriter) Status() int {
 	return rw.status
 }
 
-func (rw *ResponseWriter) ContentLength() int {
+func (rw *StatsResponseWriter) ContentLength() int {
 	return rw.contentLength
 }
