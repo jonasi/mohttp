@@ -2,6 +2,7 @@ package hateoas
 
 import (
 	"github.com/jonasi/mohttp"
+	"golang.org/x/net/context"
 )
 
 // http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
@@ -13,11 +14,21 @@ type link struct {
 	Resource *Resource
 }
 
+var setResource, resStore = mohttp.NewContextValuePair("github.com/jonasi/mohttp/hateoas.Resource")
+
+func GetResource(c context.Context) *Resource {
+	return resStore.Get(c).(*Resource)
+}
+
 type ResourceOption func(*Resource)
 
 func NewResource(opts ...ResourceOption) *Resource {
 	r := &Resource{
 		handlers: map[string][]mohttp.Handler{},
+	}
+
+	r.use = []mohttp.Handler{
+		setResource(r),
 	}
 
 	for i := range opts {
@@ -104,30 +115,4 @@ func addHandlers(method string, h ...mohttp.Handler) ResourceOption {
 
 		r.handlers[method] = append(r.handlers[method], h...)
 	}
-}
-
-type Service struct {
-	Resources []*Resource
-	Use       []mohttp.Handler
-}
-
-func (s *Service) Routes() []mohttp.Route {
-	allRoutes := []mohttp.Route{}
-
-	for _, r := range s.Resources {
-		rts := r.Routes()
-
-		for i, rt := range rts {
-			old := rt.Handlers()
-			h := make([]mohttp.Handler, len(s.Use)+len(old))
-			copy(h, s.Use)
-			copy(h[len(s.Use):], old)
-
-			rts[i] = mohttp.NewRoute(rt.Method(), rt.Path(), h...)
-		}
-
-		allRoutes = append(allRoutes, rts...)
-	}
-
-	return allRoutes
 }
