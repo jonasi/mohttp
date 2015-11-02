@@ -15,33 +15,25 @@ func (h HandlerFunc) Handle(c context.Context) {
 }
 
 type Route interface {
-	Methods() []string
-	Paths() []string
+	Path() string
+	Method() string
 	Handlers() []Handler
 }
 
 type route struct {
-	methods  []string
-	paths    []string
+	method   string
+	path     string
 	handlers []Handler
 }
 
-func (e *route) Methods() []string   { return e.methods }
-func (e *route) Paths() []string     { return e.paths }
+func (e *route) Method() string      { return e.method }
+func (e *route) Path() string        { return e.path }
 func (e *route) Handlers() []Handler { return e.handlers }
-
-func NewComplexRoute(methods []string, paths []string, handlers ...Handler) Route {
-	return &route{
-		methods:  methods,
-		paths:    paths,
-		handlers: handlers,
-	}
-}
 
 func NewRoute(method, path string, handlers ...Handler) Route {
 	return &route{
-		methods:  []string{method},
-		paths:    []string{path},
+		method:   method,
+		path:     path,
 		handlers: handlers,
 	}
 }
@@ -66,14 +58,30 @@ func PUT(path string, handlers ...Handler) Route {
 	return NewRoute("PUT", path, handlers...)
 }
 
+func PATCH(path string, handlers ...Handler) Route {
+	return NewRoute("PATCH", path, handlers...)
+}
+
 func DELETE(path string, handlers ...Handler) Route {
 	return NewRoute("DELETE", path, handlers...)
 }
 
-func ALL(path string, handlers ...Handler) Route {
-	return &route{
-		methods:  []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE"},
-		paths:    []string{path},
-		handlers: handlers,
+func TRACE(path string, handlers ...Handler) Route {
+	return NewRoute("TRACE", path, handlers...)
+}
+
+func CONNECT(path string, handlers ...Handler) Route {
+	return NewRoute("CONNECT", path, handlers...)
+}
+
+var methods = [...]string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "TRACE", "CONNECT"}
+
+func ALL(path string, handlers ...Handler) []Route {
+	rts := make([]Route, len(methods))
+
+	for i := range methods {
+		rts[i] = NewRoute(methods[i], path, handlers...)
 	}
+
+	return rts
 }

@@ -1,9 +1,10 @@
 package mohttp
 
 import (
+	"net/http"
+
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
-	"net/http"
 )
 
 var notFoundHandler = HandlerFunc(func(c context.Context) {
@@ -16,8 +17,8 @@ var methodNotAllowedHandler = HandlerFunc(func(c context.Context) {
 
 func NewRouter() *Router {
 	r := &Router{
-		router:   httprouter.New(),
-		handlers: []Handler{},
+		router: httprouter.New(),
+		use:    []Handler{},
 	}
 
 	r.HandleNotFound(notFoundHandler)
@@ -27,8 +28,8 @@ func NewRouter() *Router {
 }
 
 type Router struct {
-	router   *httprouter.Router
-	handlers []Handler
+	router *httprouter.Router
+	use    []Handler
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -37,24 +38,19 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (r *Router) Handle(method, path string, handlers ...Handler) {
 	r.router.Handle(method, path, func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-		h := append(append([]Handler{}, r.handlers...), handlers...)
-		handle(w, req, p, h...)
+		h := append(append([]Handler{}, r.use...), handlers...)
+		c := HTTPContext(w, req, p)
+		Serve(c, h...)
 	})
 }
 
 func (r *Router) Use(h ...Handler) {
-	r.handlers = append(r.handlers, h...)
+	r.use = append(r.use, h...)
 }
 
 func (r *Router) Register(routes ...Route) {
-	for i := range routes {
-		rt := routes[i]
-
-		for _, method := range rt.Methods() {
-			for _, path := range rt.Paths() {
-				r.Handle(method, path, rt.Handlers()...)
-			}
-		}
+	for _, rt := range routes {
+		r.Handle(rt.Method(), rt.Path(), rt.Handlers()...)
 	}
 }
 
@@ -66,19 +62,21 @@ func (r *Router) RegisterHTTPHandler(method, path string, h http.Handler) {
 
 func (r *Router) HandleNotFound(h ...Handler) {
 	r.router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		handlers := append(append([]Handler{}, r.handlers...), h...)
-		handle(w, req, nil, handlers...)
+		handlers := append(append([]Handler{}, r.use...), h...)
+		c := HTTPContext(w, req, nil)
+		Serve(c, handlers...)
 	})
 }
 
 func (r *Router) HandleMethodNotAllowed(h ...Handler) {
 	r.router.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		handlers := append(append([]Handler{}, r.handlers...), h...)
-		handle(w, req, nil, handlers...)
+		handlers := append(append([]Handler{}, r.use...), h...)
+		c := HTTPContext(w, req, nil)
+		Serve(c, handlers...)
 	})
 }
 
-func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handlers ...Handler) {
+func Serve(c context.Context, handlers ...Handler) {
 	next := HandlerFunc(func(c context.Context) {
 		if len(handlers) == 0 {
 			return
@@ -90,14 +88,19 @@ func handle(w http.ResponseWriter, req *http.Request, p httprouter.Params, handl
 		cur.Handle(c)
 	})
 
-	c := context.Background()
-	c = WithRequest(c, req)
-	c = WithResponseWriter(c, w)
 	c = WithNext(c, next)
-	c = WithPathValues(c, &PathValues{
-		Params: params(p),
-		Query:  query(req.URL.Query()),
-	})
 
 	next.Handle(c)
+}
+
+func HTTPContext(w http.ResponseWriter, r *http.Request, p httprouter.Params) context.Context {
+	c := context.Background()
+	c = WithRequest(c, r)
+	c = WithResponseWriter(c, w)
+	c = WithPathValues(c, &PathValues{
+		Params: params(p),
+		Query:  query(r.URL.Query()),
+	})
+
+	return c
 }

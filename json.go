@@ -56,3 +56,7 @@ func JSONHandler(fn DataHandlerFunc) Handler {
 		h.Handle(c)
 	})
 }
+
+func JSONBodyDecode(c context.Context, dest interface{}) error {
+	return json.NewDecoder(GetRequest(c).Body).Decode(dest)
+}
