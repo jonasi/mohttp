@@ -24,7 +24,7 @@ func Serve(c context.Context, handlers ...Handler) {
 	)
 
 	next := HandlerFunc(func(c context.Context) {
-		if idx > len(funcs) {
+		if idx >= len(funcs) {
 			return
 		}
 

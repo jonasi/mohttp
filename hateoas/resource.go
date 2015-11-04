@@ -1,6 +1,7 @@
 package hateoas
 
 import (
+	"fmt"
 	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
 )
@@ -10,6 +11,26 @@ import (
 // https://en.wikipedia.org/wiki/HATEOAS
 
 type Link map[string]string
+
+func (l Link) Rel() string {
+	return l["rel"]
+}
+
+func (l Link) Href() string {
+	return l["href"]
+}
+
+func (l Link) Header() string {
+	v := "<" + l.Href() + ">"
+
+	for k := range l {
+		if k != "href" {
+			v += fmt.Sprintf(`; %s="%s"`, k, l[k])
+		}
+	}
+
+	return v
+}
 
 var setResource, resStore = mohttp.NewContextValuePair("github.com/jonasi/mohttp/hateoas.Resource")
 

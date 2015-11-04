@@ -33,6 +33,10 @@ func (j *jsonResponder) HandleResult(c context.Context, data interface{}) error 
 }
 
 func (j *jsonResponder) HandleErr(c context.Context, err error) {
+	if h, ok := err.(*HTTPError); ok {
+		GetResponseWriter(c).WriteHeader(h.Code)
+	}
+
 	if j.opts != nil && j.opts.HandleErr != nil {
 		data := j.opts.HandleErr(c, err)
 		err = j.HandleResult(c, data)
