@@ -16,7 +16,7 @@ func (j *JSONOptions) Handle(c context.Context) {
 	c = jsonContextValue.Set(c, j)
 	c = WithResponder(c, &jsonResponder{j})
 
-	GetNext(c).Handle(c)
+	Next(c)
 }
 
 type jsonResponder struct {

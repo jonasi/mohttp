@@ -75,32 +75,3 @@ func (r *Router) HandleMethodNotAllowed(h ...Handler) {
 		Serve(c, handlers...)
 	})
 }
-
-func Serve(c context.Context, handlers ...Handler) {
-	next := HandlerFunc(func(c context.Context) {
-		if len(handlers) == 0 {
-			return
-		}
-
-		cur := handlers[0]
-		handlers = handlers[1:]
-
-		cur.Handle(c)
-	})
-
-	c = WithNext(c, next)
-
-	next.Handle(c)
-}
-
-func HTTPContext(w http.ResponseWriter, r *http.Request, p httprouter.Params) context.Context {
-	c := context.Background()
-	c = WithRequest(c, r)
-	c = WithResponseWriter(c, w)
-	c = WithPathValues(c, &PathValues{
-		Params: params(p),
-		Query:  query(r.URL.Query()),
-	})
-
-	return c
-}

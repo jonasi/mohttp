@@ -9,15 +9,13 @@ import (
 // https://en.wikipedia.org/wiki/Representational_state_transfer
 // https://en.wikipedia.org/wiki/HATEOAS
 
-type link struct {
-	Rel      string
-	Resource *Resource
-}
+type Link map[string]string
 
 var setResource, resStore = mohttp.NewContextValuePair("github.com/jonasi/mohttp/hateoas.Resource")
 
-func GetResource(c context.Context) *Resource {
-	return resStore.Get(c).(*Resource)
+func GetResource(c context.Context) (*Resource, bool) {
+	res, ok := resStore.Get(c).(*Resource)
+	return res, ok
 }
 
 type ResourceOption func(*Resource)
@@ -42,7 +40,11 @@ type Resource struct {
 	path     string
 	use      []mohttp.Handler
 	handlers map[string][]mohttp.Handler
-	links    []link
+	links    []Link
+}
+
+func (r *Resource) Links() []Link {
+	return r.links
 }
 
 func (r *Resource) Routes() []mohttp.Route {
@@ -75,8 +77,13 @@ func Use(h ...mohttp.Handler) ResourceOption {
 	return func(r *Resource) { r.use = append(r.use, h...) }
 }
 
-func Link(rel string, l *Resource) ResourceOption {
-	return func(r *Resource) { r.links = append(r.links, link{rel, l}) }
+func AddLink(rel string, l *Resource) ResourceOption {
+	return func(r *Resource) {
+		r.links = append(r.links, Link{
+			"rel":  rel,
+			"href": l.path,
+		})
+	}
 }
 
 func OPTIONS(h ...mohttp.Handler) ResourceOption {

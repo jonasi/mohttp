@@ -21,8 +21,9 @@ func ServiceUse(h ...mohttp.Handler) ServiceOption {
 	}
 }
 
-func GetService(c context.Context) *Service {
-	return svcStore.Get(c).(*Service)
+func GetService(c context.Context) (*Service, bool) {
+	svc, ok := svcStore.Get(c).(*Service)
+	return svc, ok
 }
 
 func NewService(opts ...ServiceOption) *Service {

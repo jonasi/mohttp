@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type RequestStats struct {
+type RequestSummary struct {
 	StartTime     time.Time
 	Protocol      string
 	Method        string
@@ -20,11 +20,11 @@ type RequestStats struct {
 	ContentLength int
 }
 
-func Logger(fn func(*RequestStats)) Handler {
+func RequestLogger(fn func(*RequestSummary)) Handler {
 	return HandlerFunc(func(c context.Context) {
 		req := GetRequest(c)
 
-		st := &RequestStats{
+		st := &RequestSummary{
 			StartTime: time.Now(),
 			Protocol:  req.Proto,
 			Method:    req.Method,
@@ -34,10 +34,10 @@ func Logger(fn func(*RequestStats)) Handler {
 			Referer:   req.Referer(),
 		}
 
-		rw := NewResponseWriter(GetResponseWriter(c))
+		rw := newStatsResponseWriter(GetResponseWriter(c))
 		c = WithResponseWriter(c, rw)
 
-		GetNext(c).Handle(c)
+		Next(c)
 
 		st.Duration = time.Since(st.StartTime)
 		st.StatusCode = rw.Status()
@@ -47,35 +47,35 @@ func Logger(fn func(*RequestStats)) Handler {
 	})
 }
 
-func NewResponseWriter(rw http.ResponseWriter) *StatsResponseWriter {
-	return &StatsResponseWriter{
+func newStatsResponseWriter(rw http.ResponseWriter) *statsResponseWriter {
+	return &statsResponseWriter{
 		ResponseWriter: rw,
 		status:         200,
 	}
 }
 
-type StatsResponseWriter struct {
+type statsResponseWriter struct {
 	http.ResponseWriter
 	status        int
 	contentLength int
 }
 
-func (rw *StatsResponseWriter) Write(b []byte) (int, error) {
+func (rw *statsResponseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.contentLength += n
 
 	return n, err
 }
 
-func (rw *StatsResponseWriter) WriteHeader(status int) {
+func (rw *statsResponseWriter) WriteHeader(status int) {
 	rw.status = status
 	rw.ResponseWriter.WriteHeader(status)
 }
 
-func (rw *StatsResponseWriter) Status() int {
+func (rw *statsResponseWriter) Status() int {
 	return rw.status
 }
 
-func (rw *StatsResponseWriter) ContentLength() int {
+func (rw *statsResponseWriter) ContentLength() int {
 	return rw.contentLength
 }

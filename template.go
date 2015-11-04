@@ -17,7 +17,7 @@ type templateOptions struct {
 
 func (t *templateOptions) Handle(c context.Context) {
 	c = templateContextValue.Set(c, t)
-	GetNext(c).Handle(c)
+	Next(c)
 }
 
 func TemplateHandler(fn func(c context.Context) (string, map[string]interface{})) Handler {

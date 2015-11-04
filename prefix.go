@@ -5,7 +5,7 @@ import (
 )
 
 func StripPrefixHandler(prefix string) Handler {
-	return FromStdLib(func(h http.Handler) http.Handler {
+	return FromHTTPMiddleware(func(h http.Handler) http.Handler {
 		return http.StripPrefix(prefix, h)
 	})
 }

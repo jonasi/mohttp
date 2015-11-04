@@ -12,7 +12,7 @@ func TemporaryRedirect(c context.Context, path string) {
 func TemporaryRedirectHandler(path string) Handler {
 	return HandlerFunc(func(c context.Context) {
 		TemporaryRedirect(c, path)
-		GetNext(c).Handle(c)
+		Next(c)
 	})
 }
 
@@ -23,7 +23,7 @@ func PermanentRedirect(c context.Context, path string) {
 func PermanentRedirectHandler(path string) Handler {
 	return HandlerFunc(func(c context.Context) {
 		PermanentRedirect(c, path)
-		GetNext(c).Handle(c)
+		Next(c)
 	})
 }
 
@@ -34,7 +34,7 @@ func Error(c context.Context, error string, code int) {
 func ErrorHandler(error string, code int) Handler {
 	return HandlerFunc(func(c context.Context) {
 		Error(c, error, code)
-		GetNext(c).Handle(c)
+		Next(c)
 	})
 }
 
@@ -45,7 +45,7 @@ func Status(c context.Context, code int) {
 func StatusHandler(code int) Handler {
 	return HandlerFunc(func(c context.Context) {
 		Status(c, code)
-		GetNext(c).Handle(c)
+		Next(c)
 	})
 }
 
@@ -60,6 +60,6 @@ func HeadersHandler(pairs ...string) Handler {
 			GetResponseWriter(c).Header().Add(pairs[2*i], pairs[2*i+1])
 		}
 
-		GetNext(c).Handle(c)
+		Next(c)
 	})
 }
