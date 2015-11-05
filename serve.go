@@ -4,34 +4,40 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 	"net/http"
+	"sort"
 )
 
-func Serve(c context.Context, handlers ...Handler) {
-	beforeFuncs := []HandlerFunc{}
-	mainFuncs := []HandlerFunc{}
-
-	for _, h := range handlers {
-		if b, ok := h.(PhaseHandler); ok {
-			beforeFuncs = append(beforeFuncs, b.BeforeMain)
-		}
-
-		mainFuncs = append(mainFuncs, h.Handle)
+func prio(h Handler) int {
+	if ph, ok := h.(PriorityHandler); ok {
+		return ph.Priority()
 	}
 
+	return 0
+}
+
+type sortedHandlers []Handler
+
+func (s sortedHandlers) Len() int           { return len(s) }
+func (s sortedHandlers) Swap(a, b int)      { s[a], s[b] = s[b], s[a] }
+func (s sortedHandlers) Less(a, b int) bool { return prio(s[a]) < prio(s[b]) }
+
+func Serve(c context.Context, handlers ...Handler) {
 	var (
-		idx   = 0
-		funcs = append(beforeFuncs, mainFuncs...)
+		idx    = 0
+		sorted = sortedHandlers(handlers)
 	)
 
+	sort.Stable(sorted)
+
 	next := HandlerFunc(func(c context.Context) {
-		if idx >= len(funcs) {
+		if idx >= len(sorted) {
 			return
 		}
 
-		cur := funcs[idx]
+		cur := sorted[idx]
 		idx++
 
-		cur(c)
+		cur.Handle(c)
 	})
 
 	c = nextStore.Set(c, next)

@@ -1,0 +1,32 @@
+package mohttp
+
+import (
+	"golang.org/x/net/context"
+)
+
+type PriorityHandler interface {
+	Priority() int
+	Handler
+}
+
+type Handler interface {
+	Handle(context.Context)
+}
+
+type HandlerFunc func(context.Context)
+
+func (h HandlerFunc) Handle(c context.Context) {
+	h(c)
+}
+
+type priorityHandler struct {
+	priority int
+	handler  Handler
+}
+
+func (p *priorityHandler) Priority() int            { return p.priority }
+func (p *priorityHandler) Handle(c context.Context) { p.handler.Handle(c) }
+
+func PriorityHandlerFunc(p int, fn HandlerFunc) PriorityHandler {
+	return &priorityHandler{p, fn}
+}

@@ -5,11 +5,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-func NewContextValuePair(str string) (func(interface{}) PhaseHandler, contextutil.ValueStore) {
+func NewContextValuePair(str string) (func(interface{}) PriorityHandler, contextutil.ValueStore) {
 	st := NewContextValueStore(str)
 
-	return func(val interface{}) PhaseHandler {
-		return BeforeHandlerFunc(func(c context.Context) {
+	return func(val interface{}) PriorityHandler {
+		return PriorityHandlerFunc(-100, func(c context.Context) {
 			c = st.Set(c, val)
 			Next(c)
 		})

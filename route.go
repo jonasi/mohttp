@@ -1,34 +1,5 @@
 package mohttp
 
-import (
-	"golang.org/x/net/context"
-)
-
-type PhaseHandler interface {
-	BeforeMain(context.Context)
-	Handler
-}
-
-type Handler interface {
-	Handle(context.Context)
-}
-
-type HandlerFunc func(context.Context)
-
-func (h HandlerFunc) Handle(c context.Context) {
-	h(c)
-}
-
-type BeforeHandlerFunc func(context.Context)
-
-func (h BeforeHandlerFunc) BeforeMain(c context.Context) {
-	h(c)
-}
-
-func (h BeforeHandlerFunc) Handle(c context.Context) {
-	Next(c)
-}
-
 type Route interface {
 	Path() string
 	Method() string
