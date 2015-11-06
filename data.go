@@ -15,35 +15,33 @@ func WithResponder(c context.Context, r DataResponder) context.Context {
 	return dataHandlerContext.Set(c, r)
 }
 
-type DataHandlerFunc func(c context.Context) (interface{}, error)
+type DataHandlerFunc func(context.Context) (interface{}, error)
 
-func DataHandler(fn DataHandlerFunc) Handler {
-	return HandlerFunc(func(c context.Context) {
-		r, ok := dataHandlerContext.Get(c).(DataResponder)
+func (fn DataHandlerFunc) Handle(c context.Context) {
+	r, ok := dataHandlerContext.Get(c).(DataResponder)
 
-		if !ok {
-			panic("No data responder set")
+	if !ok {
+		panic("No data responder set")
+	}
+
+	var (
+		err    error
+		result interface{}
+	)
+
+	defer func() {
+		if err2 := recoverErr(); err2 != nil {
+			err = err2
 		}
 
-		var (
-			err  error
-			data interface{}
-		)
+		if err == nil {
+			err = r.HandleResult(c, result)
+		}
 
-		defer func() {
-			if err2 := recoverErr(); err2 != nil {
-				err = err2
-			}
+		if err != nil {
+			r.HandleErr(c, err)
+		}
+	}()
 
-			if err == nil {
-				err = r.HandleResult(c, data)
-			}
-
-			if err != nil {
-				r.HandleErr(c, err)
-			}
-		}()
-
-		data, err = fn(c)
-	})
+	result, err = fn(c)
 }

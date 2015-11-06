@@ -48,8 +48,6 @@ func (j *jsonResponder) HandleErr(c context.Context, err error) {
 }
 
 func JSONHandler(fn DataHandlerFunc) Handler {
-	h := DataHandler(fn)
-
 	return HandlerFunc(func(c context.Context) {
 		_, ok := jsonContextValue.Get(c).(*JSONOptions)
 
@@ -57,7 +55,7 @@ func JSONHandler(fn DataHandlerFunc) Handler {
 			c = WithResponder(c, &jsonResponder{})
 		}
 
-		h.Handle(c)
+		fn(c)
 	})
 }
 

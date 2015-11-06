@@ -30,3 +30,6 @@ func (p *priorityHandler) Handle(c context.Context) { p.handler.Handle(c) }
 func PriorityHandlerFunc(p int, fn HandlerFunc) PriorityHandler {
 	return &priorityHandler{p, fn}
 }
+
+var EmptyBodyHandler Handler = HandlerFunc(func(c context.Context) {
+})
