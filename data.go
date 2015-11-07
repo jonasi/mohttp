@@ -11,8 +11,20 @@ type DataResponder interface {
 	HandleResult(context.Context, interface{}) error
 }
 
-func WithResponder(c context.Context, r DataResponder) context.Context {
+func GetDataResponder(c context.Context) (DataResponder, bool) {
+	r, ok := dataHandlerContext.Get(c).(DataResponder)
+	return r, ok
+}
+
+func WithDataResponder(c context.Context, r DataResponder) context.Context {
 	return dataHandlerContext.Set(c, r)
+}
+
+func DataResponderHandler(d DataResponder) Handler {
+	return HandlerFunc(func(c context.Context) {
+		c = WithDataResponder(c, d)
+		Next(c)
+	})
 }
 
 type DataHandlerFunc func(context.Context) (interface{}, error)

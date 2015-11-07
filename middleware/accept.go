@@ -7,44 +7,18 @@ import (
 	"strings"
 )
 
-type AcceptDataMapper map[string]mohttp.Handler
+type AcceptHandlers map[string]mohttp.Handler
 
-func (a AcceptDataMapper) Handle(c context.Context) {
-
-}
-
-func (a AcceptDataMapper) HandleErr(c context.Context, err error) {
-
-}
-
-func (a AcceptDataMapper) HandleResult(c context.Context, res interface{}) error {
-	return nil
-}
-
-func RequireMediaTypeHandler(mediaTypes ...string) mohttp.Handler {
-	mediaTypes = ParseMediaTypes(mediaTypes...)
-
-	return mohttp.HandlerFunc(func(c context.Context) {
-		if !MatchMediaTypes(c, mediaTypes...) {
-			mohttp.Error(c, "Not Acceptable", 406)
+func (a AcceptHandlers) Handle(c context.Context) {
+	for mt, h := range a {
+		if MatchMediaTypes(c, mt) {
+			h.Handle(c)
+			mohttp.Next(c)
 			return
 		}
-	})
-}
-
-func AcceptHandler(mediaTypes ...string) func(mohttp.Handler) mohttp.Handler {
-	mediaTypes = ParseMediaTypes(mediaTypes...)
-
-	return func(h mohttp.Handler) mohttp.Handler {
-		return mohttp.HandlerFunc(func(c context.Context) {
-			if MatchMediaTypes(c, mediaTypes...) {
-				h.Handle(c)
-				return
-			}
-
-			mohttp.Error(c, "Not Acceptable", 406)
-		})
 	}
+
+	mohttp.Error(c, "Not Acceptable", 406)
 }
 
 func ParseMediaTypes(mediaTypes ...string) []string {
