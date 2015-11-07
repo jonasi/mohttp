@@ -1,53 +1,48 @@
-package mohttp
+package middleware
 
 import (
+	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
 	"mime"
 	"strings"
 )
 
-type acceptDataMapper struct {
+type AcceptDataMapper map[string]mohttp.Handler
+
+func (a AcceptDataMapper) Handle(c context.Context) {
+
 }
 
-func (a *acceptDataMapper) HandleErr(c context.Context, err error) {
+func (a AcceptDataMapper) HandleErr(c context.Context, err error) {
 
 }
 
-func (a *acceptDataMapper) HandleResult(c context.Context, res interface{}) error {
+func (a AcceptDataMapper) HandleResult(c context.Context, res interface{}) error {
 	return nil
 }
 
-func AcceptDataMapper(m map[string]DataResponder) Handler {
-	am := &acceptDataMapper{}
-
-	return HandlerFunc(func(c context.Context) {
-		c = WithResponder(c, am)
-		Next(c)
-	})
-}
-
-func RequireMediaTypeHandler(mediaTypes ...string) Handler {
+func RequireMediaTypeHandler(mediaTypes ...string) mohttp.Handler {
 	mediaTypes = ParseMediaTypes(mediaTypes...)
 
-	return HandlerFunc(func(c context.Context) {
+	return mohttp.HandlerFunc(func(c context.Context) {
 		if !MatchMediaTypes(c, mediaTypes...) {
-			Error(c, "Not Acceptable", 406)
+			mohttp.Error(c, "Not Acceptable", 406)
 			return
 		}
 	})
 }
 
-func AcceptHandler(mediaTypes ...string) func(Handler) Handler {
+func AcceptHandler(mediaTypes ...string) func(mohttp.Handler) mohttp.Handler {
 	mediaTypes = ParseMediaTypes(mediaTypes...)
 
-	return func(h Handler) Handler {
-		return HandlerFunc(func(c context.Context) {
+	return func(h mohttp.Handler) mohttp.Handler {
+		return mohttp.HandlerFunc(func(c context.Context) {
 			if MatchMediaTypes(c, mediaTypes...) {
 				h.Handle(c)
 				return
 			}
 
-			Error(c, "Not Acceptable", 406)
+			mohttp.Error(c, "Not Acceptable", 406)
 		})
 	}
 }
@@ -67,7 +62,7 @@ func ParseMediaTypes(mediaTypes ...string) []string {
 }
 
 func MatchMediaTypes(c context.Context, mediaTypes ...string) bool {
-	acc := strings.Split(GetRequest(c).Header.Get("Accept"), ",")
+	acc := strings.Split(mohttp.GetRequest(c).Header.Get("Accept"), ",")
 
 	if len(acc) == 0 {
 		return true

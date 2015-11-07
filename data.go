@@ -21,7 +21,7 @@ func (fn DataHandlerFunc) Handle(c context.Context) {
 	r, ok := dataHandlerContext.Get(c).(DataResponder)
 
 	if !ok {
-		panic("No data responder set")
+		panic("No DataResponder set in handler chain")
 	}
 
 	var (

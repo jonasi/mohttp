@@ -1,9 +1,10 @@
-package mohttp
+package middleware
 
 // http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.3.3
 // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
 
 import (
+	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
 	"sync"
 )
@@ -40,8 +41,8 @@ type ETagDataHandlerFunc func(string, context.Context) (bool, string, interface{
 
 func (fn ETagDataHandlerFunc) Handle(c context.Context) {
 	var (
-		h                 = GetRequest(c).Header.Get("If-None-Match")
-		rw                = GetResponseWriter(c)
+		h                 = mohttp.GetRequest(c).Header.Get("If-None-Match")
+		rw                = mohttp.GetResponseWriter(c)
 		match, etag, _, _ = fn(h, c)
 	)
 
@@ -53,15 +54,15 @@ func (fn ETagDataHandlerFunc) Handle(c context.Context) {
 	}
 }
 
-func ETagHandler(src *ETagSource) Handler {
-	return HandlerFunc(func(c context.Context) {
+func ETagHandler(src *ETagSource) mohttp.Handler {
+	return mohttp.HandlerFunc(func(c context.Context) {
 		var (
-			h  = GetRequest(c).Header.Get("If-None-Match")
-			rw = GetResponseWriter(c)
+			h  = mohttp.GetRequest(c).Header.Get("If-None-Match")
+			rw = mohttp.GetResponseWriter(c)
 		)
 
 		if h == "" {
-			Next(c)
+			mohttp.Next(c)
 			return
 		}
 

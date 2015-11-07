@@ -4,11 +4,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-type PriorityHandler interface {
-	Priority() int
-	Handler
-}
-
 type Handler interface {
 	Handle(context.Context)
 }
@@ -17,6 +12,11 @@ type HandlerFunc func(context.Context)
 
 func (h HandlerFunc) Handle(c context.Context) {
 	h(c)
+}
+
+type PriorityHandler interface {
+	Priority() int
+	Handler
 }
 
 type priorityHandler struct {
@@ -31,5 +31,4 @@ func PriorityHandlerFunc(p int, fn HandlerFunc) PriorityHandler {
 	return &priorityHandler{p, fn}
 }
 
-var EmptyBodyHandler Handler = HandlerFunc(func(c context.Context) {
-})
+var EmptyBodyHandler Handler = HandlerFunc(func(c context.Context) {})

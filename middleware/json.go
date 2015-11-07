@@ -1,11 +1,12 @@
-package mohttp
+package middleware
 
 import (
 	"encoding/json"
+	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
 )
 
-var jsonContextValue = NewContextValueStore("github.com/jonasi/http.JSON")
+var jsonContextValue = mohttp.NewContextValueStore("github.com/jonasi/http.JSON")
 
 type JSONOptions struct {
 	HandleErr func(context.Context, error) interface{}
@@ -14,9 +15,9 @@ type JSONOptions struct {
 
 func (j *JSONOptions) Handle(c context.Context) {
 	c = jsonContextValue.Set(c, j)
-	c = WithResponder(c, &jsonResponder{j})
+	c = mohttp.WithResponder(c, &jsonResponder{j})
 
-	Next(c)
+	mohttp.Next(c)
 }
 
 type jsonResponder struct {
@@ -28,13 +29,13 @@ func (j *jsonResponder) HandleResult(c context.Context, data interface{}) error 
 		data = j.opts.Transform(data)
 	}
 
-	GetResponseWriter(c).Header().Add("Content-Type", "application/json")
-	return json.NewEncoder(GetResponseWriter(c)).Encode(data)
+	mohttp.GetResponseWriter(c).Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(mohttp.GetResponseWriter(c)).Encode(data)
 }
 
 func (j *jsonResponder) HandleErr(c context.Context, err error) {
-	if h, ok := err.(*HTTPError); ok {
-		GetResponseWriter(c).WriteHeader(h.Code)
+	if h, ok := err.(*mohttp.HTTPError); ok {
+		mohttp.GetResponseWriter(c).WriteHeader(h.Code)
 	}
 
 	if j.opts != nil && j.opts.HandleErr != nil {
@@ -47,12 +48,12 @@ func (j *jsonResponder) HandleErr(c context.Context, err error) {
 	}
 }
 
-func JSONHandler(fn DataHandlerFunc) Handler {
-	return HandlerFunc(func(c context.Context) {
+func JSONHandler(fn mohttp.DataHandlerFunc) mohttp.Handler {
+	return mohttp.HandlerFunc(func(c context.Context) {
 		_, ok := jsonContextValue.Get(c).(*JSONOptions)
 
 		if !ok {
-			c = WithResponder(c, &jsonResponder{})
+			c = mohttp.WithResponder(c, &jsonResponder{})
 		}
 
 		fn(c)
@@ -60,5 +61,5 @@ func JSONHandler(fn DataHandlerFunc) Handler {
 }
 
 func JSONBodyDecode(c context.Context, dest interface{}) error {
-	return json.NewDecoder(GetRequest(c).Body).Decode(dest)
+	return json.NewDecoder(mohttp.GetRequest(c).Body).Decode(dest)
 }

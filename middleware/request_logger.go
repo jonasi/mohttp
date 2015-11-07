@@ -1,6 +1,7 @@
-package mohttp
+package middleware
 
 import (
+	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
 	"net/http"
 	"net/url"
@@ -20,9 +21,9 @@ type RequestSummary struct {
 	ContentLength int
 }
 
-func RequestLogger(fn func(*RequestSummary)) Handler {
-	return HandlerFunc(func(c context.Context) {
-		req := GetRequest(c)
+func RequestLogger(fn func(*RequestSummary)) mohttp.Handler {
+	return mohttp.HandlerFunc(func(c context.Context) {
+		req := mohttp.GetRequest(c)
 
 		st := &RequestSummary{
 			StartTime: time.Now(),
@@ -34,10 +35,10 @@ func RequestLogger(fn func(*RequestSummary)) Handler {
 			Referer:   req.Referer(),
 		}
 
-		rw := newStatsResponseWriter(GetResponseWriter(c))
-		c = WithResponseWriter(c, rw)
+		rw := newStatsResponseWriter(mohttp.GetResponseWriter(c))
+		c = mohttp.WithResponseWriter(c, rw)
 
-		Next(c)
+		mohttp.Next(c)
 
 		st.Duration = time.Since(st.StartTime)
 		st.StatusCode = rw.Status()
