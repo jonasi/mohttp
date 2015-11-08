@@ -49,5 +49,8 @@ func JSONHandler(fn mohttp.DataHandlerFunc) mohttp.Handler {
 }
 
 func JSONBodyDecode(c context.Context, dest interface{}) error {
-	return json.NewDecoder(mohttp.GetRequest(c).Body).Decode(dest)
+	r := mohttp.GetRequest(c)
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(dest)
 }
