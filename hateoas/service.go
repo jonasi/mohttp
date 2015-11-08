@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-var setService, svcStore = mohttp.NewContextValuePair("github.com/jonasi/mohttp/hateoas.Service")
+var setService, getService = mohttp.ContextValueAccessors("github.com/jonasi/mohttp/hateoas.Service")
 
 type ServiceOption func(*Service)
 
@@ -22,7 +22,7 @@ func ServiceUse(h ...mohttp.Handler) ServiceOption {
 }
 
 func GetService(c context.Context) (*Service, bool) {
-	svc, ok := svcStore.Get(c).(*Service)
+	svc, ok := getService(c).(*Service)
 	return svc, ok
 }
 

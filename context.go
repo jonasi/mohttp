@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func NewContextValuePair(str string) (func(interface{}) PriorityHandler, contextutil.ValueStore) {
+func ContextValueAccessors(str string) (func(interface{}) PriorityHandler, func(context.Context) interface{}) {
 	st := NewContextValueStore(str)
 
 	return func(val interface{}) PriorityHandler {
@@ -13,7 +13,7 @@ func NewContextValuePair(str string) (func(interface{}) PriorityHandler, context
 			c = st.Set(c, val)
 			Next(c)
 		})
-	}, st
+	}, st.Get
 }
 
 func NewContextValueStore(key string) contextutil.ValueStore {

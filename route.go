@@ -1,5 +1,16 @@
 package mohttp
 
+import (
+	"golang.org/x/net/context"
+)
+
+var setRoute, getRoute = ContextValueAccessors("github.com/jonasi/mohttp.Route")
+
+func GetRoute(c context.Context) (Route, bool) {
+	r, ok := getRoute(c).(Route)
+	return r, ok
+}
+
 type Route interface {
 	Path() string
 	Method() string
@@ -17,11 +28,16 @@ func (e *route) Path() string        { return e.path }
 func (e *route) Handlers() []Handler { return e.handlers }
 
 func NewRoute(method, path string, handlers ...Handler) Route {
-	return &route{
-		method:   method,
-		path:     path,
-		handlers: handlers,
+	r := &route{
+		method: method,
+		path:   path,
 	}
+
+	r.handlers = append([]Handler{
+		setRoute(r),
+	}, handlers...)
+
+	return r
 }
 
 func OPTIONS(path string, handlers ...Handler) Route {

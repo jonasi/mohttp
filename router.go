@@ -7,6 +7,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+var setRouter, getRouter = ContextValueAccessors("github.com/jonasi/mohttp.Router")
+
 var notFoundHandler = HandlerFunc(func(c context.Context) {
 	GetResponseWriter(c).WriteHeader(http.StatusNotFound)
 })
@@ -15,10 +17,18 @@ var methodNotAllowedHandler = HandlerFunc(func(c context.Context) {
 	GetResponseWriter(c).WriteHeader(http.StatusMethodNotAllowed)
 })
 
+func GetRouter(c context.Context) (*Router, bool) {
+	r, ok := getRouter(c).(*Router)
+	return r, ok
+}
+
 func NewRouter() *Router {
 	r := &Router{
 		router: httprouter.New(),
-		use:    []Handler{},
+	}
+
+	r.use = []Handler{
+		setRouter(r),
 	}
 
 	r.HandleNotFound(notFoundHandler)

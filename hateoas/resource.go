@@ -32,10 +32,10 @@ func (l Link) Header() string {
 	return v
 }
 
-var setResource, resStore = mohttp.NewContextValuePair("github.com/jonasi/mohttp/hateoas.Resource")
+var setResource, getResource = mohttp.ContextValueAccessors("github.com/jonasi/mohttp/hateoas.Resource")
 
 func GetResource(c context.Context) (*Resource, bool) {
-	res, ok := resStore.Get(c).(*Resource)
+	res, ok := getResource(c).(*Resource)
 	return res, ok
 }
 
