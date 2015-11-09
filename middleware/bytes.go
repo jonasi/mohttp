@@ -21,7 +21,7 @@ func (r *BytesResponder) HandleErr(c context.Context, err error) {
 		return
 	}
 
-	mohttp.Error(c, err.Error(), 500)
+	mohttp.GetResponseWriter(c).WriteHeader(500)
 }
 
 func (r *BytesResponder) HandleResult(c context.Context, res interface{}) error {
@@ -51,7 +51,7 @@ func (r *DetectTypeResponder) HandleErr(c context.Context, err error) {
 		return
 	}
 
-	mohttp.Error(c, err.Error(), 500)
+	mohttp.GetResponseWriter(c).WriteHeader(500)
 }
 
 func (r *DetectTypeResponder) HandleResult(c context.Context, res interface{}) error {

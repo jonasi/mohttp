@@ -27,17 +27,6 @@ func PermanentRedirectHandler(path string) Handler {
 	})
 }
 
-func Error(c context.Context, error string, code int) {
-	http.Error(GetResponseWriter(c), error, code)
-}
-
-func ErrorHandler(error string, code int) Handler {
-	return HandlerFunc(func(c context.Context) {
-		Error(c, error, code)
-		Next(c)
-	})
-}
-
 func Status(c context.Context, code int) {
 	GetResponseWriter(c).WriteHeader(code)
 }

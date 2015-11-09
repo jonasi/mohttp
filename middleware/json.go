@@ -22,8 +22,8 @@ func (j *JSONResponder) HandleResult(c context.Context, data interface{}) error 
 }
 
 func (j *JSONResponder) HandleErr(c context.Context, err error) {
-	if h, ok := err.(*mohttp.HTTPError); ok {
-		mohttp.GetResponseWriter(c).WriteHeader(h.Code)
+	if h, ok := err.(mohttp.HTTPError); ok {
+		mohttp.GetResponseWriter(c).WriteHeader(int(h))
 	}
 
 	if j.OnError != nil {

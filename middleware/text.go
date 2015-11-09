@@ -21,7 +21,7 @@ func (t *TextResponder) HandleErr(c context.Context, err error) {
 		return
 	}
 
-	mohttp.Error(c, err.Error(), 500)
+	mohttp.GetResponseWriter(c).WriteHeader(500)
 }
 
 func (t *TextResponder) HandleResult(c context.Context, res interface{}) error {

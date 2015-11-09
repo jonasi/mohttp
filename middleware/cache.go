@@ -92,6 +92,15 @@ func queryID(c context.Context) string {
 	return strings.Join(vals, ",")
 }
 
+func CheckETag(c context.Context, etag string) bool {
+	if etag == mohttp.GetRequest(c).Header.Get("If-None-Match") {
+		mohttp.GetResponseWriter(c).WriteHeader(304)
+		return true
+	}
+
+	return false
+}
+
 type ETagCache struct {
 	etag string
 	body []byte

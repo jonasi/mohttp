@@ -2,13 +2,11 @@ package mohttp
 
 import (
 	"fmt"
+	"net/http"
 )
 
-type HTTPError struct {
-	Code   int
-	Reason string
-}
+type HTTPError int
 
-func (e *HTTPError) Error() string {
-	return fmt.Sprintf("HTTP Error code=%d %s", e.Code, e.Reason)
+func (e HTTPError) Error() string {
+	return fmt.Sprintf("%d %s", int(e), http.StatusText(int(e)))
 }

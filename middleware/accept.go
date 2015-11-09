@@ -18,7 +18,7 @@ func (a AcceptHandlers) Handle(c context.Context) {
 		}
 	}
 
-	mohttp.Error(c, "Not Acceptable", 406)
+	mohttp.GetResponseWriter(c).WriteHeader(406)
 }
 
 func ParseMediaTypes(mediaTypes ...string) []string {

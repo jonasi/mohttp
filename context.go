@@ -5,6 +5,9 @@ import (
 	"golang.org/x/net/context"
 )
 
+// ContextValueAccessors generates a pair of funcs to get and set values on the context. The first
+// func returns a Handler that will set the value in a middleware chain.  The second func can be used
+// to retrieve that value from a handler body.
 func ContextValueAccessors(str string) (func(interface{}) PriorityHandler, func(context.Context) interface{}) {
 	st := NewContextValueStore(str)
 
@@ -16,6 +19,8 @@ func ContextValueAccessors(str string) (func(interface{}) PriorityHandler, func(
 	}, st.Get
 }
 
+// NewContextValueStore is a small wrapper around contextutil.ValueStore that turns the provided string
+// into a unique key
 func NewContextValueStore(key string) contextutil.ValueStore {
 	return &contextValueStore{
 		contextutil.NewValueStore(contextutil.NewKey(key)),
