@@ -68,3 +68,9 @@ func (fn DataHandlerFunc) Handle(c context.Context) {
 
 	result, err = fn(c)
 }
+
+func StaticDataHandler(v interface{}) DataHandlerFunc {
+	return DataHandlerFunc(func(c context.Context) (interface{}, error) {
+		return v, nil
+	})
+}
