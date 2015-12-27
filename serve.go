@@ -22,6 +22,15 @@ func (s sortedHandlers) Swap(a, b int)      { s[a], s[b] = s[b], s[a] }
 func (s sortedHandlers) Less(a, b int) bool { return prio(s[a]) < prio(s[b]) }
 
 func Serve(c context.Context, handlers ...Handler) {
+	if len(handlers) == 0 {
+		return
+	}
+
+	if len(handlers) == 1 {
+		handlers[0].Handle(c)
+		return
+	}
+
 	var (
 		idx    = 0
 		sorted = sortedHandlers(handlers)
@@ -88,5 +97,9 @@ func GetPathValues(c context.Context) *PathValues {
 }
 
 func Next(c context.Context) {
-	nextStore.Get(c).(HandlerFunc)(c)
+	h, ok := nextStore.Get(c).(HandlerFunc)
+
+	if ok {
+		h(c)
+	}
 }

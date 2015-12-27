@@ -32,3 +32,9 @@ func PriorityHandlerFunc(p int, fn HandlerFunc) PriorityHandler {
 }
 
 var EmptyBodyHandler Handler = HandlerFunc(func(c context.Context) {})
+
+type ChainedHandlers []Handler
+
+func (ch ChainedHandlers) Handle(c context.Context) {
+	Serve(c, ch...)
+}
