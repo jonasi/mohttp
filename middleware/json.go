@@ -32,7 +32,7 @@ func (j *JSONResponder) HandleErr(c context.Context, err error) {
 	}
 
 	if err != nil {
-		panic("No error json handler specified")
+		panic("No error json handler specified - error: " + err.Error())
 	}
 }
 

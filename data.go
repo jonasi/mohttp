@@ -57,7 +57,7 @@ func (fn DataHandlerFunc) Handle(c context.Context) {
 			err = err2
 		}
 
-		if err == nil {
+		if err == nil && result != DataNoBody {
 			err = r.HandleResult(c, result)
 		}
 
@@ -74,3 +74,7 @@ func StaticDataHandler(v interface{}) DataHandlerFunc {
 		return v, nil
 	})
 }
+
+var dataNoBody = struct{}{}
+
+var DataNoBody interface{} = &dataNoBody

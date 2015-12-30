@@ -92,63 +92,26 @@ func queryID(c context.Context) string {
 	return strings.Join(vals, ",")
 }
 
-func CheckETag(c context.Context, etag string) bool {
-	if etag == mohttp.GetRequest(c).Header.Get("If-None-Match") {
-		mohttp.GetResponseWriter(c).WriteHeader(304)
-		return true
-	}
+func EtagHandlerFunc(fn func(context.Context) (interface{}, string, error)) mohttp.Handler {
+	return mohttp.DataHandlerFunc(func(c context.Context) (interface{}, error) {
+		d, etag, err := fn(c)
 
-	return false
-}
+		if err != nil {
+			return nil, err
+		}
 
-type ETagCache struct {
-	etag string
-	body []byte
-	mu   sync.RWMutex
-}
+		var (
+			found = mohttp.GetRequest(c).Header.Get("If-None-Match")
+			rw    = mohttp.GetResponseWriter(c)
+		)
 
-func (e *ETagCache) ETag() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+		rw.Header().Set("ETag", etag)
 
-	return e.etag
-}
+		if etag == found {
+			rw.WriteHeader(304)
+			return mohttp.DataNoBody, nil
+		}
 
-func (e *ETagCache) Body() []byte {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return e.body
-}
-
-func (e *ETagCache) Update(body []byte, etag string) {
-	e.mu.Lock()
-	defer e.mu.RUnlock()
-
-	e.etag = etag
-	e.body = body
-}
-
-func (e *ETagCache) Handle(c context.Context) {
-	var (
-		h  = mohttp.GetRequest(c).Header.Get("If-None-Match")
-		rw = mohttp.GetResponseWriter(c)
-		et = e.ETag()
-	)
-
-	if et != "" {
-		rw.Header().Set("ETag", et)
-	}
-
-	if h == "" {
-		mohttp.Next(c)
-		return
-	}
-
-	if h == e.ETag() {
-		rw.WriteHeader(304)
-		return
-	}
-
-	rw.Write(e.Body())
+		return d, nil
+	})
 }
