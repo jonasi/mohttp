@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"errors"
 	"github.com/jonasi/mohttp"
 	"golang.org/x/net/context"
+	"io"
 	"net/http"
+	"sync"
 )
 
 type BytesProvider interface {
@@ -57,20 +60,39 @@ func (r *DetectTypeResponder) HandleErr(c context.Context, err error) {
 func (r *DetectTypeResponder) HandleResult(c context.Context, res interface{}) error {
 	var (
 		rw = mohttp.GetResponseWriter(c)
-		b  []byte
+		rd io.Reader
 	)
 
-	if bytes, ok := res.([]byte); ok {
-		b = bytes
-	} else if bytes, ok := res.(BytesProvider); ok {
-		b = bytes.Bytes()
+	if b, ok := res.([]byte); ok {
+		rd = bytes.NewReader(b)
+	} else if b, ok := res.(BytesProvider); ok {
+		rd = bytes.NewReader(b.Bytes())
+	} else if r, ok := res.(io.Reader); ok {
+		rd = r
 	} else {
 		return errors.New("DataProvider result cannot be coerced into []byte")
 	}
 
-	ct := http.DetectContentType(b)
-	rw.Header().Set("Content-Type", ct)
+	_, err := io.Copy(&onFirstWriteWriter{
+		Writer: rw,
+		OnFirstWrite: func(b []byte) {
+			ct := http.DetectContentType(b)
+			rw.Header().Set("Content-Type", ct)
+		},
+	}, rd)
+	return err
+}
 
-	rw.Write(b)
-	return nil
+type onFirstWriteWriter struct {
+	io.Writer
+	OnFirstWrite func([]byte)
+	once         sync.Once
+}
+
+func (w *onFirstWriteWriter) Write(b []byte) (int, error) {
+	w.once.Do(func() {
+		w.OnFirstWrite(b)
+	})
+
+	return w.Writer.Write(b)
 }
